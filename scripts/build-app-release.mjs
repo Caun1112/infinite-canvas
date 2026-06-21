@@ -31,7 +31,7 @@ try {
         console.log(output);
     } else if (platform === "ios") {
         run("npx", ["--yes", "@tauri-apps/cli@2.11.3", "ios", "build", "--no-sign", "--ci"], webDir);
-        const ipaPath = findFirst(join(webDir, "src-tauri", "target"), ".ipa");
+        const ipaPath = findFirst(join(webDir, "src-tauri", "gen", "apple", "build"), ".ipa") || findFirst(join(webDir, "src-tauri", "target"), ".ipa");
         if (!ipaPath) throw new Error("没有找到 iOS unsigned .ipa 产物");
         const output = join(releaseDir, `InfiniteCanvas_${version}_unsigned.ipa`);
         copyFileSync(ipaPath, output);
