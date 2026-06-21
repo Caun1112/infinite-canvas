@@ -4,6 +4,10 @@ node_modules/
 .env*
 !.env.example
 data/
+dist/
+web/src-tauri/target/
+web/src-tauri/gen/
+web/src-tauri/.tauri/
 *.log
 *.tsbuildinfo
 .DS_Store

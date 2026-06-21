@@ -7,6 +7,9 @@
         "dev": "next dev --webpack -H 0.0.0.0 -p 3000",
         "build": "next build",
         "start": "next start",
+        "tauri": "npx --yes @tauri-apps/cli@2.11.3",
+        "app:macos": "node ../scripts/build-app-release.mjs macos",
+        "app:ios": "node ../scripts/build-app-release.mjs ios",
         "format": "prettier --write .",
         "format:check": "prettier --check ."
     },

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { AppProviders } from "@/components/layout/app-providers";
@@ -9,6 +9,14 @@ import React from "react";
 export const metadata: Metadata = {
     title: "无限画布",
     description: "一个无限画布创作工具",
+};
+
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
 };
 
 export default function RootLayout({
