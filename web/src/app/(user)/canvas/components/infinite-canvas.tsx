@@ -109,6 +109,7 @@ export function InfiniteCanvas({ containerRef, viewport, backgroundMode = "lines
         const isBackgroundClick = !target?.closest("[data-node-id],[data-connection-id]");
 
         if (event.pointerType === "touch" && isBackgroundClick) {
+            if (panState.current.isPanning) return;
             event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
             panState.current = {
@@ -158,6 +159,9 @@ export function InfiniteCanvas({ containerRef, viewport, backgroundMode = "lines
 
         const handlePointerDown = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
+            if (containerRef.current?.contains(event.target as Node) && event.cancelable) {
+                event.preventDefault();
+            }
             activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
             if (activePointers.size !== 2 || !containerRef.current?.contains(event.target as Node)) return;
             const ids = Array.from(activePointers.keys()).slice(-2);
@@ -176,6 +180,7 @@ export function InfiniteCanvas({ containerRef, viewport, backgroundMode = "lines
 
         const handlePointerMove = (event: PointerEvent) => {
             if (event.pointerType === "touch" && activePointers.has(event.pointerId)) {
+                if (event.cancelable) event.preventDefault();
                 activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
             }
             if (touchRef.current.active) {
@@ -199,6 +204,7 @@ export function InfiniteCanvas({ containerRef, viewport, backgroundMode = "lines
                 return;
             }
             if (!panState.current.isPanning) return;
+            if (event.pointerType === "touch" && event.cancelable) event.preventDefault();
 
             const dx = event.clientX - panState.current.startX;
             const dy = event.clientY - panState.current.startY;
@@ -220,6 +226,7 @@ export function InfiniteCanvas({ containerRef, viewport, backgroundMode = "lines
 
         const handlePointerUp = (event: PointerEvent) => {
             if (event.pointerType === "touch") {
+                if (event.cancelable) event.preventDefault();
                 activePointers.delete(event.pointerId);
                 if (activePointers.size < 2) touchRef.current.active = false;
             }
@@ -229,7 +236,21 @@ export function InfiniteCanvas({ containerRef, viewport, backgroundMode = "lines
                 onCanvasDeselect?.();
             }
             panState.current.isPanning = false;
+            panState.current.hasMoved = false;
             document.body.style.cursor = "default";
+        };
+
+        const resetTouchState = () => {
+            activePointers.clear();
+            touchRef.current.active = false;
+            touchRef.current.ids = [];
+            panState.current.isPanning = false;
+            panState.current.hasMoved = false;
+            document.body.style.cursor = "default";
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) resetTouchState();
         };
 
         const viewportRefFromLatest = () => ({
@@ -242,11 +263,17 @@ export function InfiniteCanvas({ containerRef, viewport, backgroundMode = "lines
         window.addEventListener("pointermove", handlePointerMove);
         window.addEventListener("pointerup", handlePointerUp);
         window.addEventListener("pointercancel", handlePointerUp);
+        window.addEventListener("blur", resetTouchState);
+        window.addEventListener("infinite-canvas-reset-touch", resetTouchState);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
         return () => {
             window.removeEventListener("pointerdown", handlePointerDown);
             window.removeEventListener("pointermove", handlePointerMove);
             window.removeEventListener("pointerup", handlePointerUp);
             window.removeEventListener("pointercancel", handlePointerUp);
+            window.removeEventListener("blur", resetTouchState);
+            window.removeEventListener("infinite-canvas-reset-touch", resetTouchState);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, [onCanvasDeselect, onViewportChange]);
 

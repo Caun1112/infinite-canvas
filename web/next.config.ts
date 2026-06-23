@@ -11,10 +11,16 @@ const localChangelog = readFileSync(resolve(webDir, "../CHANGELOG.md"), "utf8");
 
 export default function nextConfig(phase: string): NextConfig {
     const isDev = phase === PHASE_DEVELOPMENT_SERVER;
+    const isStaticApp = process.env.NEXT_PUBLIC_STATIC_APP === "1";
     const releases = parseChangelog(localChangelog);
 
     return {
-        output: "standalone",
+        output: isStaticApp ? "export" : "standalone",
+        trailingSlash: isStaticApp,
+        distDir: isStaticApp ? "out-build" : ".next",
+        images: {
+            unoptimized: isStaticApp,
+        },
         allowedDevOrigins: isDev ? ["*.*.*.*"] : [],
         typescript: {
             ignoreBuildErrors: true,
@@ -22,6 +28,7 @@ export default function nextConfig(phase: string): NextConfig {
         env: {
             NEXT_PUBLIC_APP_VERSION: localVersion,
             NEXT_PUBLIC_APP_RELEASES: JSON.stringify(releases),
+            NEXT_PUBLIC_STATIC_APP: isStaticApp ? "1" : "0",
         },
     };
 }

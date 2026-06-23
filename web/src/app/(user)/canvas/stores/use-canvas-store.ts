@@ -37,6 +37,8 @@ const CANVAS_STORE_KEY = "infinite-canvas:canvas_store";
 type PersistedCanvasState = Pick<CanvasStore, "projects">;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let queuedPersistState: PersistedCanvasState | null = null;
+let queuedPersistName: string | null = null;
+let queuedPersistValue: StorageValue<CanvasStore> | null = null;
 
 const canvasStorage: PersistStorage<CanvasStore> = {
     getItem: async (name) => {
@@ -50,9 +52,13 @@ const canvasStorage: PersistStorage<CanvasStore> = {
         const nextState = value.state as PersistedCanvasState;
         if (queuedPersistState && queuedPersistState.projects === nextState.projects) return;
         queuedPersistState = nextState;
+        queuedPersistName = name;
+        queuedPersistValue = value;
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(() => {
             saveTimer = null;
+            queuedPersistName = null;
+            queuedPersistValue = null;
             void localForageStorage.setItem(name, JSON.stringify(value));
         }, 400);
     },
@@ -132,3 +138,25 @@ export const useCanvasStore = create<CanvasStore>()(
         },
     ),
 );
+
+export function flushCanvasStorePersist() {
+    if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+    }
+    const name = queuedPersistName;
+    const value = queuedPersistValue;
+    queuedPersistName = null;
+    queuedPersistValue = null;
+    if (!name || !value) return Promise.resolve();
+    return localForageStorage.setItem(name, JSON.stringify(value));
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", () => {
+        void flushCanvasStorePersist();
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") void flushCanvasStorePersist();
+    });
+}

@@ -45,7 +45,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
         const point = readCanvasPoint(event.currentTarget, event.clientX, event.clientY);
         const maskCanvas = maskCanvasRef.current;
         const context = maskCanvas?.getContext("2d");
-        if (!context) return;
+        if (!maskCanvas || !context) return;
         context.lineCap = "round";
         context.lineJoin = "round";
         context.lineWidth = brushSize;
@@ -57,7 +57,8 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
         } else {
             drawMaskStroke(context, drawingRef.current.last, point, brushSize);
         }
-        renderMaskPreview(maskCanvas, previewCanvasRef.current);
+        const previewCanvas = previewCanvasRef.current;
+        if (previewCanvas) renderMaskPreview(maskCanvas, previewCanvas);
         drawingRef.current.last = point;
         if (mode === "paint") {
             setError("");
@@ -101,11 +102,11 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
     };
 
     return (
-        <Modal title={null} open={open && Boolean(dataUrl)} onCancel={onClose} footer={null} width={980} centered destroyOnHidden>
+        <Modal className="canvas-image-mask-modal" title={null} open={open && Boolean(dataUrl)} onCancel={onClose} footer={null} width={980} centered destroyOnHidden>
             <div className="grid gap-5 lg:grid-cols-[minmax(360px,1fr)_320px]">
                 <div className="flex min-h-[360px] items-center justify-center rounded-xl border border-black/10 bg-transparent p-0 dark:border-white/10">
                     <div className="relative inline-block max-w-full overflow-hidden rounded-lg bg-transparent select-none">
-                        <img src={dataUrl} alt="" className="block max-h-[68vh] max-w-full bg-transparent" draggable={false} />
+                        <img src={dataUrl} alt="" className="block max-h-[70vh] max-w-full bg-transparent" draggable={false} />
                         {image ? (
                             <>
                                 <canvas ref={maskCanvasRef} width={image.width} height={image.height} className="hidden" />

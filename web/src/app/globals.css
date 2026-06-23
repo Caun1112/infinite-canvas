@@ -129,6 +129,9 @@
         overscroll-behavior: none;
         -webkit-text-size-adjust: 100%;
     }
+    html {
+        background: var(--background);
+    }
     body {
         @apply bg-background text-foreground;
         padding: 0;
@@ -147,6 +150,12 @@
     }
     html {
         @apply font-sans;
+    }
+    button,
+    input,
+    textarea,
+    select {
+        -webkit-tap-highlight-color: transparent;
     }
 }
 
@@ -186,6 +195,139 @@
 
     .hide-scrollbar::-webkit-scrollbar {
         display: none;
+    }
+
+    .ant-message {
+        top: calc(env(safe-area-inset-top) + 72px) !important;
+    }
+
+    @media (max-width: 767px), (hover: none) and (pointer: coarse) {
+        .canvas-main-toolbar {
+            right: max(12px, env(safe-area-inset-right)) !important;
+            bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
+            left: max(12px, env(safe-area-inset-left)) !important;
+        }
+
+        .canvas-main-toolbar-panel {
+            flex-wrap: wrap;
+            height: auto;
+            max-width: calc(100vw - 24px);
+            padding-top: 8px;
+            padding-bottom: 8px;
+            row-gap: 6px;
+            overflow-x: hidden;
+        }
+
+        .canvas-main-toolbar-panel > * {
+            flex: 0 0 auto;
+        }
+
+        .canvas-main-toolbar .canvas-main-toolbar-button {
+            height: 36px !important;
+            width: 36px !important;
+            min-width: 36px !important;
+        }
+
+        .canvas-main-toolbar .canvas-main-toolbar-button > span {
+            width: 36px;
+            height: 36px;
+        }
+
+        input,
+        textarea,
+        select,
+        [contenteditable="true"],
+        .ant-input,
+        .ant-input-number-input,
+        .ant-select-selection-search-input {
+            font-size: 16px !important;
+        }
+
+        .canvas-zoom-controls {
+            left: auto !important;
+            right: calc(max(12px, env(safe-area-inset-right)) + 120px) !important;
+            top: calc(env(safe-area-inset-top) + 12px) !important;
+            bottom: auto !important;
+        }
+
+        .canvas-zoom-controls > div {
+            height: 40px;
+            gap: 4px;
+            border-color: transparent !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            backdrop-filter: none;
+        }
+
+        .canvas-zoom-controls input[type="range"],
+        .canvas-zoom-controls-panel > span {
+            display: none !important;
+        }
+
+        .canvas-node-toolbar {
+            height: auto;
+            width: 56px;
+            max-height: min(62vh, 420px);
+            flex-direction: column;
+            align-items: stretch;
+            overflow-y: auto;
+            border-radius: 20px;
+            padding: 8px 4px;
+        }
+
+        .canvas-node-toolbar-action {
+            height: 48px;
+            width: 48px;
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .canvas-node-toolbar-action > span {
+            height: 40px;
+            width: 40px;
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .canvas-node-toolbar-action > span > span {
+            display: none;
+        }
+
+        .canvas-user-actions .canvas-only-secondary {
+            display: none;
+        }
+
+        .canvas-image-crop-modal,
+        .canvas-image-mask-modal {
+            max-width: calc(100vw - 16px);
+            margin: 0 auto;
+        }
+
+        .canvas-image-crop-modal .ant-modal-content,
+        .canvas-image-mask-modal .ant-modal-content {
+            max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+            overflow: auto;
+        }
+
+        .canvas-image-crop-modal img {
+            max-height: 72dvh;
+        }
+
+        .canvas-crop-handle {
+            width: 18px !important;
+            height: 18px !important;
+            transform: translate(-3px, -3px);
+        }
+
+        .canvas-image-mask-modal img {
+            max-height: 58dvh;
+        }
+
+        .canvas-image-mask-modal textarea {
+            min-height: 96px;
+        }
     }
 
     .prompt-filter-tag.ant-tag-checkable {

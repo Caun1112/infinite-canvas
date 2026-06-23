@@ -4,7 +4,6 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <title>无限画布</title>
-        <script src="./app-config.js"></script>
         <style>
             :root {
                 color-scheme: dark;
@@ -48,27 +47,12 @@
                 line-height: 1.8;
             }
 
-            a {
-                color: #f5f5f4;
-                text-underline-offset: 4px;
-            }
         </style>
     </head>
     <body>
         <main>
             <h1>正在打开无限画布</h1>
-            <p id="status">正在连接 0.2.5 应用服务...</p>
+            <p>正在启动应用内置服务，请稍候...</p>
         </main>
-        <script>
-            const target = window.INFINITE_CANVAS_APP_URL || "http://localhost:3000";
-            const status = document.getElementById("status");
-            try {
-                const url = new URL(target);
-                status.innerHTML = `如果没有自动跳转，请确认应用服务已启动：<br><a href="${url.href}">${url.href}</a>`;
-                window.location.replace(url.href);
-            } catch {
-                status.textContent = "App 入口地址无效，请重新生成 App 壳配置。";
-            }
-        </script>
     </body>
 </html>

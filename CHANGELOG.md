@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-+ [新增] 新增基于 0.2.5 Web 服务的 macOS / iPhone Tauri App 壳构建入口，并统一 release assets 产物命名。
++ [新增] 新增基于 0.2.5 的 macOS 自启动 Tauri App 构建入口，App 内置前端服务、Go API 和 Node 运行时；iPhone IPA 改为打包静态前端并直接进入画布库，统一 release assets 产物命名。
 + [优化] 增加 iPhone 视口、安全区、输入框字号和画布触控基础适配。
 
 ## v0.2.5 - 2026-06-08

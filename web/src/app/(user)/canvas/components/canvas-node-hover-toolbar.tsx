@@ -80,6 +80,7 @@ export function CanvasNodeHoverToolbar({
     const [draftImageToolIds, setDraftImageToolIds] = useState<ImageQuickToolId[]>(defaultImageQuickToolIds);
     const [draftShowImageToolLabels, setDraftShowImageToolLabels] = useState(true);
     const [imageToolSettingsOpen, setImageToolSettingsOpen] = useState(false);
+    const [isTouchToolbar, setIsTouchToolbar] = useState(false);
     const { message } = App.useApp();
     const copyText = useCopyText();
 
@@ -97,23 +98,37 @@ export function CanvasNodeHoverToolbar({
     }, []);
 
     useEffect(() => {
+        const query = window.matchMedia("(hover: none), (pointer: coarse), (max-width: 767px)");
+        const update = () => setIsTouchToolbar(query.matches);
+        update();
+        query.addEventListener("change", update);
+        return () => query.removeEventListener("change", update);
+    }, []);
+
+    useEffect(() => {
         setImageToolSettingsOpen(false);
     }, [node?.id]);
 
     if (!node) return null;
+    const currentNode = node;
 
-    const left = viewport.x + (node.position.x + node.width / 2) * viewport.k;
-    const top = viewport.y + node.position.y * viewport.k - 14;
-    const isImage = node.type === CanvasNodeType.Image;
-    const isVideo = node.type === CanvasNodeType.Video;
-    const isAudio = node.type === CanvasNodeType.Audio;
-    const hasImage = isImage && Boolean(node.metadata?.content);
-    const hasVideo = isVideo && Boolean(node.metadata?.content);
-    const hasAudio = isAudio && Boolean(node.metadata?.content);
-    const isText = node.type === CanvasNodeType.Text;
-    const isConfig = node.type === CanvasNodeType.Config;
+    const nodeLeft = viewport.x + currentNode.position.x * viewport.k;
+    const nodeRight = viewport.x + (currentNode.position.x + currentNode.width) * viewport.k;
+    const nodeTop = viewport.y + currentNode.position.y * viewport.k;
+    const nodeCenterY = viewport.y + (currentNode.position.y + currentNode.height / 2) * viewport.k;
+    const placeTouchToolbarRight = typeof window === "undefined" || nodeRight + 72 < window.innerWidth;
+    const left = isTouchToolbar ? (placeTouchToolbarRight ? nodeRight + 14 : nodeLeft - 14) : viewport.x + (currentNode.position.x + currentNode.width / 2) * viewport.k;
+    const top = isTouchToolbar ? nodeCenterY : nodeTop - 14;
+    const isImage = currentNode.type === CanvasNodeType.Image;
+    const isVideo = currentNode.type === CanvasNodeType.Video;
+    const isAudio = currentNode.type === CanvasNodeType.Audio;
+    const hasImage = isImage && Boolean(currentNode.metadata?.content);
+    const hasVideo = isVideo && Boolean(currentNode.metadata?.content);
+    const hasAudio = isAudio && Boolean(currentNode.metadata?.content);
+    const isText = currentNode.type === CanvasNodeType.Text;
+    const isConfig = currentNode.type === CanvasNodeType.Config;
     const canOpenDialog = isText || hasImage || isVideo;
-    const canRetry = node.metadata?.status === "error";
+    const canRetry = currentNode.metadata?.status === "error";
     const quickImageToolIdSet = new Set(quickImageToolIds);
     const copyImagePrompt = (target: CanvasNodeData) => {
         const prompt = target.metadata?.prompt?.trim();
@@ -123,32 +138,32 @@ export function CanvasNodeHoverToolbar({
         }
         copyText(prompt, "提示词已复制");
     };
-    const imageTools = buildImageToolbarTools(node, { onUpload, onToggleFreeResize, onMaskEdit, onCrop, onSplit, onUpscale, onSuperResolve, onAngle, onViewImage, onCopyPrompt: copyImagePrompt, onReversePrompt });
+    const imageTools = buildImageToolbarTools(currentNode, { onUpload, onToggleFreeResize, onMaskEdit, onCrop, onSplit, onUpscale, onSuperResolve, onAngle, onViewImage, onCopyPrompt: copyImagePrompt, onReversePrompt });
 
     function openImageToolSettings() {
-        onKeep(node.id);
+        onKeep(currentNode.id);
         setDraftImageToolIds(quickImageToolIds);
         setDraftShowImageToolLabels(showImageToolLabels);
         setImageToolSettingsOpen(true);
     }
 
     const baseToolbarTools: ToolbarTool[] = [
-        { id: "info", title: "查看节点信息", label: "信息", icon: <Info className="size-4" />, onClick: () => onInfo(node) },
-        { id: "delete", title: "移除节点", label: "删除", icon: <Trash2 className="size-4" />, onClick: () => onDelete(node), danger: true },
+        { id: "info", title: "查看节点信息", label: "信息", icon: <Info className="size-4" />, onClick: () => onInfo(currentNode) },
+        { id: "delete", title: "删除节点", label: "删除", icon: <Trash2 className="size-4" />, onClick: () => onDelete(currentNode), danger: true },
     ];
     const nodeToolbarTools: ToolbarTool[] = [
-        ...(canRetry ? [{ id: "retry", title: "重新生成", label: "重试", icon: <RefreshCw className="size-4" />, onClick: () => onRetry(node) }] : []),
-        ...(hasImage || hasVideo || isText ? [{ id: "saveAsset", title: "加入我的素材", label: "存素材", icon: <FolderPlus className="size-4" />, onClick: () => onSaveAsset(node) }] : []),
-        ...(hasImage || hasVideo || hasAudio ? [{ id: "download", title: hasAudio ? "下载音频" : hasVideo ? "下载视频" : "下载图片", label: "下载", icon: <Download className="size-4" />, onClick: () => onDownload(node) }] : []),
-        ...(canOpenDialog ? [{ id: "edit", title: "编辑", label: "编辑", icon: <MessageSquare className="size-4" />, onClick: () => onToggleDialog(node) }] : []),
-        ...(isText ? [{ id: "editText", title: "编辑文本", label: "编辑文字", icon: <Pencil className="size-4" />, onClick: () => onEditText(node) }] : []),
-        ...(isText ? [{ id: "generateImage", title: "用文本生图", label: "生图", icon: <ImageIcon className="size-4" />, onClick: () => onGenerateImage(node) }] : []),
-        ...(isConfig ? [{ id: "config", title: "生成配置", label: "生成配置", icon: <Settings2 className="size-4" />, onClick: () => onToggleDialog(node) }] : []),
-        ...(isText ? [{ id: "decreaseFont", title: "减小字号", label: "缩小", icon: <Minus className="size-4" />, onClick: () => onDecreaseFont(node) }] : []),
-        ...(isText ? [{ id: "increaseFont", title: "增大字号", label: "放大", icon: <Plus className="size-4" />, onClick: () => onIncreaseFont(node) }] : []),
-        ...(isImage && !hasImage ? [{ id: "uploadImage", title: "上传图片", label: "上传图片", icon: <Upload className="size-4" />, onClick: () => onUpload(node) }] : []),
-        ...(isVideo ? [{ id: "uploadVideo", title: hasVideo ? "替换视频" : "上传视频", label: hasVideo ? "替换视频" : "上传视频", icon: <Video className="size-4" />, onClick: () => onUpload(node) }] : []),
-        ...(isAudio ? [{ id: "uploadAudio", title: hasAudio ? "替换音频" : "上传音频", label: hasAudio ? "替换音频" : "上传音频", icon: <Music2 className="size-4" />, onClick: () => onUpload(node) }] : []),
+        ...(canRetry ? [{ id: "retry", title: "重新生成", label: "重试", icon: <RefreshCw className="size-4" />, onClick: () => onRetry(currentNode) }] : []),
+        ...(hasImage || hasVideo || isText ? [{ id: "saveAsset", title: "加入我的素材", label: "存素材", icon: <FolderPlus className="size-4" />, onClick: () => onSaveAsset(currentNode) }] : []),
+        ...(hasImage || hasVideo || hasAudio ? [{ id: "download", title: hasAudio ? "下载音频" : hasVideo ? "下载视频" : "下载图片", label: "下载", icon: <Download className="size-4" />, onClick: () => onDownload(currentNode) }] : []),
+        ...(canOpenDialog ? [{ id: "edit", title: "编辑", label: "编辑", icon: <MessageSquare className="size-4" />, onClick: () => onToggleDialog(currentNode) }] : []),
+        ...(isText ? [{ id: "editText", title: "编辑文本", label: "编辑文字", icon: <Pencil className="size-4" />, onClick: () => onEditText(currentNode) }] : []),
+        ...(isText ? [{ id: "generateImage", title: "用文本生图", label: "生图", icon: <ImageIcon className="size-4" />, onClick: () => onGenerateImage(currentNode) }] : []),
+        ...(isConfig ? [{ id: "config", title: "生成配置", label: "生成配置", icon: <Settings2 className="size-4" />, onClick: () => onToggleDialog(currentNode) }] : []),
+        ...(isText ? [{ id: "decreaseFont", title: "减小字号", label: "缩小", icon: <Minus className="size-4" />, onClick: () => onDecreaseFont(currentNode) }] : []),
+        ...(isText ? [{ id: "increaseFont", title: "增大字号", label: "放大", icon: <Plus className="size-4" />, onClick: () => onIncreaseFont(currentNode) }] : []),
+        ...(isImage && !hasImage ? [{ id: "uploadImage", title: "上传图片", label: "上传图片", icon: <Upload className="size-4" />, onClick: () => onUpload(currentNode) }] : []),
+        ...(isVideo ? [{ id: "uploadVideo", title: hasVideo ? "替换视频" : "上传视频", label: hasVideo ? "替换视频" : "上传视频", icon: <Video className="size-4" />, onClick: () => onUpload(currentNode) }] : []),
+        ...(isAudio ? [{ id: "uploadAudio", title: hasAudio ? "替换音频" : "上传音频", label: hasAudio ? "替换音频" : "上传音频", icon: <Music2 className="size-4" />, onClick: () => onUpload(currentNode) }] : []),
         ...(hasImage ? imageTools.map((tool) => ({ id: tool.id, title: tool.title, label: tool.label, icon: tool.icon, active: tool.active, onClick: tool.onClick })) : []),
     ];
     const toolbarTools = hasImage ? [...baseToolbarTools, ...nodeToolbarTools].filter((tool) => quickImageToolIdSet.has(tool.id as ImageQuickToolId)) : [...baseToolbarTools, ...nodeToolbarTools];
@@ -179,9 +194,10 @@ export function CanvasNodeHoverToolbar({
     return (
         <>
             <div
-                className="absolute z-[70] flex h-12 -translate-x-1/2 -translate-y-full items-center overflow-visible rounded-[18px] border border-black/10 bg-white text-[15px] text-[#242529] shadow-[0_8px_28px_rgba(15,23,42,.12)]"
-                style={{ left, top }}
-                onMouseEnter={() => onKeep(node.id)}
+                className={`canvas-node-toolbar absolute z-[70] flex h-12 items-center overflow-visible rounded-[18px] border border-black/10 bg-white text-[15px] text-[#242529] shadow-[0_8px_28px_rgba(15,23,42,.12)] ${isTouchToolbar ? "canvas-node-toolbar-mobile" : "-translate-x-1/2 -translate-y-full"}`}
+                style={{ left, top, transform: isTouchToolbar ? (placeTouchToolbarRight ? "translate(0, -50%)" : "translate(-100%, -50%)") : undefined }}
+                data-canvas-no-zoom
+                onMouseEnter={() => onKeep(currentNode.id)}
                 onMouseLeave={() => {
                     if (!imageToolSettingsOpen) onLeave();
                 }}
@@ -189,9 +205,9 @@ export function CanvasNodeHoverToolbar({
                 onPointerDown={(event) => event.stopPropagation()}
             >
                 {toolbarTools.map((tool) => (
-                    <ToolbarAction key={tool.id} {...tool} showLabel={showImageToolLabels} />
+                    <ToolbarAction key={tool.id} {...tool} showLabel={showImageToolLabels} disableTooltip={isTouchToolbar} />
                 ))}
-                {hasImage ? <ToolbarAction id="more" title="配置快捷工具" label="更多" icon={<Ellipsis className="size-4" />} active={imageToolSettingsOpen} onClick={openImageToolSettings} showLabel={showImageToolLabels} /> : null}
+                {hasImage ? <ToolbarAction id="more" title="配置快捷工具" label="更多" icon={<Ellipsis className="size-4" />} active={imageToolSettingsOpen} onClick={openImageToolSettings} showLabel={showImageToolLabels} disableTooltip={isTouchToolbar} /> : null}
             </div>
             {hasImage ? (
                 <ImageToolSettingsModal
@@ -213,6 +229,8 @@ export function CanvasNodeInfoModal({ node, open, onClose }: { node: CanvasNodeD
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const [view, setView] = useState<"info" | "json">("info");
     const imageBytes = node?.type === CanvasNodeType.Image && node.metadata?.content ? getDataUrlByteSize(node.metadata.content) : 0;
+    const naturalSize = node?.type === CanvasNodeType.Image && (node.metadata?.naturalWidth || node.metadata?.naturalHeight) ? `${Math.round(node.metadata?.naturalWidth || node.width)} x ${Math.round(node.metadata?.naturalHeight || node.height)}` : "";
+    const generationElapsedMs = node?.metadata?.generationElapsedMs;
     const batchCount = node?.type === CanvasNodeType.Image ? node.metadata?.batchChildIds?.length || 0 : 0;
     const json = useMemo(() => {
         if (!node) return "";
@@ -261,6 +279,8 @@ export function CanvasNodeInfoModal({ node, open, onClose }: { node: CanvasNodeD
                             <InfoRow label="状态" value={node.metadata?.status || "idle"} />
                             {batchCount > 1 ? <InfoRow label="图片组" value={`${batchCount} 张`} /> : null}
                             {node.metadata?.prompt ? <InfoRow label="提示词" value={node.metadata.prompt} /> : null}
+                            {naturalSize ? <InfoRow label="原图分辨率" value={naturalSize} /> : null}
+                            {typeof generationElapsedMs === "number" ? <InfoRow label="本次耗时" value={formatDuration(generationElapsedMs)} /> : null}
                             {imageBytes ? <InfoRow label="图片大小" value={formatBytes(imageBytes)} /> : null}
                             {node.metadata?.errorDetails ? (
                                 <div className="rounded-lg border p-3 text-red-400" style={{ borderColor: theme.node.stroke }}>
@@ -279,16 +299,34 @@ export function CanvasNodeInfoModal({ node, open, onClose }: { node: CanvasNodeD
     );
 }
 
-function ToolbarAction({ title, label, icon, onClick, showLabel, active = false, danger = false }: ToolbarTool & { showLabel: boolean }) {
+function ToolbarAction({ title, label, icon, onClick, showLabel, active = false, danger = false, disableTooltip = false }: ToolbarTool & { showLabel: boolean; disableTooltip?: boolean }) {
     const hasText = showLabel && Boolean(label);
+    const button = (
+        <button
+            type="button"
+            className={`canvas-node-toolbar-action group relative flex h-12 items-center whitespace-nowrap px-1.5 ${danger ? "text-[#ef4444]" : ""}`}
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onClick();
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            aria-label={title}
+            title={disableTooltip ? title : undefined}
+        >
+            <span className={`flex h-9 items-center ${hasText ? "gap-2 px-2.5" : "justify-center px-2"} rounded-lg transition group-hover:bg-[#f0f0f1] ${active ? "bg-[#eeeeef]" : ""}`}>
+                {icon}
+                {hasText ? <span>{label}</span> : null}
+            </span>
+        </button>
+    );
+
+    if (disableTooltip) return button;
+
     return (
-        <Tooltip title={title} placement="top" mouseEnterDelay={0.2} color="#ffffff" styles={{ body: { color: "#242529", boxShadow: "0 8px 24px rgba(15,23,42,.16)", fontSize: 13, fontWeight: 500 } }}>
-            <button type="button" className={`group relative flex h-12 items-center whitespace-nowrap px-1.5 ${danger ? "text-[#ef4444]" : ""}`} onClick={onClick} aria-label={title}>
-                <span className={`flex h-9 items-center ${hasText ? "gap-2 px-2.5" : "justify-center px-2"} rounded-lg transition group-hover:bg-[#f0f0f1] ${active ? "bg-[#eeeeef]" : ""}`}>
-                    {icon}
-                    {hasText ? <span>{label}</span> : null}
-                </span>
-            </button>
+        <Tooltip title={title} placement="top" mouseEnterDelay={0.2} color="#ffffff" overlayInnerStyle={{ color: "#242529", boxShadow: "0 8px 24px rgba(15,23,42,.16)", fontSize: 13, fontWeight: 500 }}>
+            {button}
         </Tooltip>
     );
 }
@@ -300,4 +338,11 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
             <span className="min-w-0 whitespace-pre-wrap break-words">{value}</span>
         </div>
     );
+}
+
+function formatDuration(ms: number) {
+    const totalSeconds = Math.max(0, Math.round(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes ? `${minutes}分${seconds.toString().padStart(2, "0")}秒` : `${seconds}秒`;
 }

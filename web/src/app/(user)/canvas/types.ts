@@ -56,6 +56,8 @@ export type CanvasNodeMetadata = {
     mimeType?: string;
     bytes?: number;
     durationMs?: number;
+    generationStartedAt?: number;
+    generationElapsedMs?: number;
 };
 
 export type CanvasNodeData = {

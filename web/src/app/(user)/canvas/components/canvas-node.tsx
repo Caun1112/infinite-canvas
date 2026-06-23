@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { ReactNode } from "react";
 import { ChevronRight, Image as ImageIcon, Music2, RefreshCw, Star, Video } from "lucide-react";
 
@@ -38,7 +38,7 @@ type CanvasNodeProps = {
     onMouseDown: (event: React.MouseEvent, nodeId: string) => void;
     onHoverStart: (nodeId: string) => void;
     onHoverEnd: (nodeId: string) => void;
-    onConnectStart: (event: React.MouseEvent, nodeId: string, handleType: "source" | "target") => void;
+    onConnectStart: (event: React.MouseEvent | ReactPointerEvent, nodeId: string, handleType: "source" | "target") => void;
     onResize: (nodeId: string, width: number, height: number, position?: Position) => void;
     onContentChange: (nodeId: string, content: string) => void;
     onToggleBatch?: (nodeId: string) => void;
@@ -47,6 +47,7 @@ type CanvasNodeProps = {
     onGenerateImage?: (node: CanvasNodeData) => void;
     onViewImage?: (node: CanvasNodeData) => void;
     onContextMenu: (event: React.MouseEvent, nodeId: string) => void;
+    onLongPress: (nodeId: string) => void;
 };
 
 type NodeContentRendererProps = {
@@ -102,6 +103,7 @@ export const CanvasNode = React.memo(function CanvasNode({
     onGenerateImage,
     onViewImage,
     onContextMenu,
+    onLongPress,
 }: CanvasNodeProps) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const [hovered, setHovered] = useState(false);
@@ -126,6 +128,12 @@ export const CanvasNode = React.memo(function CanvasNode({
         keepRatio: false,
         ratio: 1,
     });
+    const longPressRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; x: number; y: number; fired: boolean }>({ timer: null, x: 0, y: 0, fired: false });
+
+    const clearLongPress = useCallback(() => {
+        if (longPressRef.current.timer) clearTimeout(longPressRef.current.timer);
+        longPressRef.current.timer = null;
+    }, []);
 
     useEffect(() => {
         const textarea = textareaRef.current;
@@ -231,10 +239,31 @@ export const CanvasNode = React.memo(function CanvasNode({
 
     useEffect(() => {
         return () => {
+            clearLongPress();
             window.removeEventListener("mousemove", handleResizeMove);
             window.removeEventListener("mouseup", handleResizeUp);
         };
-    }, [handleResizeMove, handleResizeUp]);
+    }, [clearLongPress, handleResizeMove, handleResizeUp]);
+
+    const handleNodePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (event.pointerType !== "touch") return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest("button,input,textarea,select,[contenteditable='true'],[data-canvas-no-zoom]")) return;
+        longPressRef.current = { timer: null, x: event.clientX, y: event.clientY, fired: false };
+        longPressRef.current.timer = setTimeout(() => {
+            longPressRef.current.fired = true;
+            onLongPress(data.id);
+        }, 520);
+    };
+
+    const handleNodePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (event.pointerType !== "touch" || !longPressRef.current.timer) return;
+        if (Math.hypot(event.clientX - longPressRef.current.x, event.clientY - longPressRef.current.y) > 8) clearLongPress();
+    };
+
+    const handleNodePointerUp = () => {
+        clearLongPress();
+    };
 
     return (
         <div
@@ -256,6 +285,10 @@ export const CanvasNode = React.memo(function CanvasNode({
                 onHoverEnd(data.id);
             }}
             onContextMenu={(event) => onContextMenu(event, data.id)}
+            onPointerDown={handleNodePointerDown}
+            onPointerMove={handleNodePointerMove}
+            onPointerUp={handleNodePointerUp}
+            onPointerCancel={handleNodePointerUp}
         >
             <div
                 className="relative h-full w-full overflow-visible rounded-3xl border-2"
@@ -337,7 +370,7 @@ export const CanvasNode = React.memo(function CanvasNode({
 function NodeContent(props: NodeContentRendererProps) {
     if (props.node.type === CanvasNodeType.Config && props.renderNodeContent) return props.renderNodeContent(props.node);
     if (props.isBatchRoot) return <ImageNodeContent {...props} />;
-    if (props.node.metadata?.status === "loading") return <LoadingContent theme={props.theme} />;
+    if (props.node.metadata?.status === "loading") return <LoadingContent node={props.node} theme={props.theme} />;
     if (props.node.metadata?.status === "error") return <ErrorContent node={props.node} theme={props.theme} onRetry={props.onRetry} />;
 
     const Renderer = nodeContentRenderers[props.node.type];
@@ -352,11 +385,22 @@ const nodeContentRenderers = {
     [CanvasNodeType.Audio]: AudioNodeContent,
 } satisfies Record<CanvasNodeType, (props: NodeContentRendererProps) => ReactNode>;
 
-function LoadingContent({ theme }: Pick<NodeContentRendererProps, "theme">) {
+function LoadingContent({ node, theme }: Pick<NodeContentRendererProps, "node" | "theme">) {
+    const [now, setNow] = useState(() => Date.now());
+    const startedAt = node.metadata?.generationStartedAt;
+    const elapsedMs = startedAt ? Math.max(0, now - startedAt) : 0;
+
+    useEffect(() => {
+        if (!startedAt) return;
+        const timer = window.setInterval(() => setNow(Date.now()), 1000);
+        return () => window.clearInterval(timer);
+    }, [startedAt]);
+
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-3" style={{ color: theme.node.activeStroke }}>
             <div className="size-10 animate-spin rounded-full border-2" style={{ borderColor: theme.node.stroke, borderTopColor: theme.node.activeStroke }} />
             <span className="text-[10px] tracking-[0.2em]">生成中</span>
+            {startedAt ? <span className="text-xs tabular-nums opacity-70">{formatDuration(elapsedMs)}</span> : null}
         </div>
     );
 }
@@ -454,7 +498,7 @@ function ImageNodeContent(props: NodeContentRendererProps) {
     if (!props.node.metadata?.content && props.isBatchRoot) {
         const content =
             props.node.metadata?.status === "loading" ? (
-                <LoadingContent theme={props.theme} />
+                <LoadingContent node={props.node} theme={props.theme} />
             ) : props.node.metadata?.status === "error" ? (
                 <ErrorContent node={props.node} theme={props.theme} onRetry={props.onRetry} />
             ) : (
@@ -652,6 +696,13 @@ function BatchFrame({ batchCount, batchExpanded, batchOpening, batchRecovering, 
         </div>
     );
 }
+
+function formatDuration(ms: number) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes ? `${minutes}:${String(seconds).padStart(2, "0")}` : `${seconds}s`;
+}
 function ResizeHandle({ corner, onMouseDown }: { corner: ResizeCorner; onMouseDown: (event: React.MouseEvent, corner: ResizeCorner) => void }) {
     const positionClass = {
         "top-left": "-left-[14px] -top-[14px] cursor-nwse-resize",
@@ -663,8 +714,13 @@ function ResizeHandle({ corner, onMouseDown }: { corner: ResizeCorner; onMouseDo
     return <div className={`absolute z-50 size-7 ${positionClass}`} onMouseDown={(event) => onMouseDown(event, corner)} />;
 }
 
-function ConnectionHandleDot({ side, visible, onMouseDown }: { side: "left" | "right"; visible: boolean; onMouseDown: (event: React.MouseEvent) => void }) {
+function ConnectionHandleDot({ side, visible, onMouseDown }: { side: "left" | "right"; visible: boolean; onMouseDown: (event: React.MouseEvent | ReactPointerEvent<HTMLDivElement>) => void }) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
+    const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (event.pointerType === "mouse") return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        onMouseDown(event);
+    };
 
     return (
         <div
@@ -672,6 +728,7 @@ function ConnectionHandleDot({ side, visible, onMouseDown }: { side: "left" | "r
                 side === "left" ? "-left-6" : "-right-6"
             } ${visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
             onMouseDown={onMouseDown}
+            onPointerDown={handlePointerDown}
         >
             <div className="size-3 rounded-full border-2 transition-all hover:scale-125" style={{ background: theme.node.panel, borderColor: theme.node.muted }} />
         </div>

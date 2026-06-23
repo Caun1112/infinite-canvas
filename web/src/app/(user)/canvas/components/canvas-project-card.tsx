@@ -21,7 +21,7 @@ export function CanvasProjectCard({ project }: { project: CanvasProject }) {
     const setDeleteIds = useCanvasUiStore((state) => state.setDeleteProjectIds);
     const editing = editingId === project.id;
     const selected = selectedIds.includes(project.id);
-    const open = () => router.push(`/canvas/${project.id}`);
+    const open = () => router.push(process.env.NEXT_PUBLIC_STATIC_APP === "1" ? `/canvas/app?id=${encodeURIComponent(project.id)}` : `/canvas/${project.id}`);
     const saveTitle = () => {
         renameProject(project.id, editingTitle);
         stopEditing();

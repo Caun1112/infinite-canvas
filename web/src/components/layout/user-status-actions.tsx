@@ -53,8 +53,8 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
     ];
 
     return (
-        <div className="inline-flex shrink-0 items-center gap-1">
-            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className={naturalIconClass} style={iconStyle} aria-label="文档" title="文档">
+        <div className="canvas-user-actions inline-flex shrink-0 items-center gap-1">
+            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className={cn(naturalIconClass, variant === "canvas" && "canvas-only-secondary")} style={iconStyle} aria-label="文档" title="文档">
                 <BookOpen className="size-4" />
             </a>
             {showConfig ? (
@@ -63,8 +63,10 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
                 </button>
             ) : null}
             <AnimatedThemeToggler theme={theme} onThemeChange={setTheme} className={naturalIconClass} style={iconStyle} aria-label={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"} title={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"} />
-            <VersionReleaseModal style={versionStyle} />
-            <GitHubLink className={cn("bg-transparent hover:bg-transparent dark:hover:bg-transparent", gitHubClassName)} style={gitHubStyle} />
+            <span className={variant === "canvas" ? "canvas-only-secondary inline-flex" : "inline-flex"}>
+                <VersionReleaseModal style={versionStyle} />
+            </span>
+            <GitHubLink className={cn("bg-transparent hover:bg-transparent dark:hover:bg-transparent", gitHubClassName, variant === "canvas" && "canvas-only-secondary")} style={gitHubStyle} />
             {variant === "canvas" && user ? (
                 <Tooltip title="当前算力点余额" placement="bottom">
                     <div className="flex h-8 shrink-0 items-center gap-1.5 px-1.5 text-xs font-medium tabular-nums opacity-75 transition hover:opacity-100" style={{ color: canvasTheme.node.text }}>
@@ -79,7 +81,7 @@ export function UserStatusActions({ showConfig = true, variant = "default", onOp
                 </button>
             ) : null}
             {!user ? (
-                <Link href="/login" className="px-1.5 text-sm font-medium text-stone-600 underline-offset-4 transition hover:text-stone-950 hover:underline dark:text-stone-300 dark:hover:text-stone-100" style={iconStyle}>
+                <Link href="/login" className={cn("px-1.5 text-sm font-medium text-stone-600 underline-offset-4 transition hover:text-stone-950 hover:underline dark:text-stone-300 dark:hover:text-stone-100", variant === "canvas" && "canvas-only-secondary")} style={iconStyle}>
                     登录
                 </Link>
             ) : null}

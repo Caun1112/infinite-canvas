@@ -5,6 +5,9 @@ node_modules/
 !.env.example
 data/
 dist/
+web/package-lock.json
+web/out-build/
+web/src-tauri/resources/
 web/src-tauri/target/
 web/src-tauri/gen/
 web/src-tauri/.tauri/

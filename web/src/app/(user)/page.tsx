@@ -2,6 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { App, Button, Image, Tag } from "antd";
 
 import { fetchPrompts, type Prompt } from "@/services/api/prompts";
@@ -23,16 +24,26 @@ function Highlighter({ action, color, children }: { action: "highlight" | "under
 
 export default function IndexPage() {
     const { message } = App.useApp();
+    const router = useRouter();
     const [primaryTool] = navigationTools;
     const [promptShowcase, setPromptShowcase] = useState<Prompt[]>([]);
     const [previewIndex, setPreviewIndex] = useState(0);
     const [previewOpen, setPreviewOpen] = useState(false);
+    const isStaticApp = process.env.NEXT_PUBLIC_STATIC_APP === "1";
 
     useEffect(() => {
+        if (isStaticApp) {
+            router.replace("/canvas");
+            return;
+        }
         void fetchPrompts({ pageSize: 12 })
             .then((data) => setPromptShowcase(data.items))
             .catch((error) => message.error(error instanceof Error ? error.message : "获取提示词失败"));
-    }, [message]);
+    }, [isStaticApp, message, router]);
+
+    if (isStaticApp) {
+        return <main className="flex h-full items-center justify-center bg-background text-sm text-stone-500 dark:text-stone-400">正在进入无限画布...</main>;
+    }
 
     return (
         <main className="relative h-full overflow-y-auto bg-background bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] text-stone-950 dark:bg-[radial-gradient(rgba(245,245,244,.18)_1px,transparent_1px)] dark:text-stone-100">

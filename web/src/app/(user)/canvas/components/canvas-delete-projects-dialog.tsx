@@ -3,7 +3,7 @@
 import { Button, Modal } from "antd";
 
 import { useAssetStore } from "@/stores/use-asset-store";
-import { useCanvasStore } from "../stores/use-canvas-store";
+import { flushCanvasStorePersist, useCanvasStore } from "../stores/use-canvas-store";
 import { useCanvasUiStore } from "../stores/use-canvas-ui-store";
 
 export function CanvasDeleteProjectsDialog() {
@@ -12,10 +12,11 @@ export function CanvasDeleteProjectsDialog() {
     const removeSelectedIds = useCanvasUiStore((state) => state.removeSelectedProjectIds);
     const deleteProjects = useCanvasStore((state) => state.deleteProjects);
     const cleanupImages = useAssetStore((state) => state.cleanupImages);
-    const confirm = () => {
+    const confirm = async () => {
         deleteProjects(ids);
         cleanupImages();
         removeSelectedIds(ids);
+        await flushCanvasStorePersist();
         setDeleteIds([]);
     };
 

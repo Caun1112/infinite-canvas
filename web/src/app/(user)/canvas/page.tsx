@@ -11,7 +11,7 @@ import { setImageBlob } from "@/services/image-storage";
 import { CanvasDeleteProjectsDialog } from "./components/canvas-delete-projects-dialog";
 import { CanvasProjectCard } from "./components/canvas-project-card";
 import type { CanvasExportFile } from "./export-types";
-import { useCanvasStore } from "./stores/use-canvas-store";
+import { flushCanvasStorePersist, useCanvasStore } from "./stores/use-canvas-store";
 import { useCanvasUiStore } from "./stores/use-canvas-ui-store";
 import { exportCanvasProjects } from "./utils/canvas-export";
 
@@ -25,11 +25,16 @@ export default function CanvasPage() {
     const importProject = useCanvasStore((state) => state.importProject);
     const selectedIds = useCanvasUiStore((state) => state.selectedProjectIds);
     const setDeleteIds = useCanvasUiStore((state) => state.setDeleteProjectIds);
+    const canvasRoute = process.env.NEXT_PUBLIC_STATIC_APP === "1" ? "/canvas/app" : "/canvas";
 
     const enterProject = (id: string) => {
-        router.push(`/canvas/${id}`);
+        router.push(process.env.NEXT_PUBLIC_STATIC_APP === "1" ? `${canvasRoute}?id=${encodeURIComponent(id)}` : `${canvasRoute}/${id}`);
     };
-    const createAndEnter = () => enterProject(createProject(`无限画布 ${projects.length + 1}`));
+    const createAndEnter = async () => {
+        const id = createProject(`无限画布 ${projects.length + 1}`);
+        await flushCanvasStorePersist();
+        enterProject(id);
+    };
     const importCanvas = async (file?: File) => {
         if (!file) return;
         try {
@@ -48,6 +53,7 @@ export default function CanvasPage() {
                 ),
             );
             data.projects.forEach((item) => importProject(item.project));
+            await flushCanvasStorePersist();
             message.success(`已导入 ${data.projects.length} 个画布`);
         } catch {
             message.error("导入失败，请选择有效的画布压缩包");

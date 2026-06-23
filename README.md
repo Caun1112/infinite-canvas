@@ -55,22 +55,22 @@ macOS App zip：
 
 ```bash
 cd web
-APP_VERSION=v0.1.0 APP_URL=http://localhost:3000 npm run app:macos
+APP_VERSION=v0.1.1 npm run app:macos
 ```
 
 iPhone 未签名 IPA：
 
 ```bash
 cd web
-APP_VERSION=v0.1.0 APP_URL=http://localhost:3000 npm run app:ios
+APP_VERSION=v0.1.1 npm run app:ios
 ```
 
 产物会输出到 `dist/release-assets/`，例如：
 
-- `InfiniteCanvas_0.1.0_macOS_app.zip`
-- `InfiniteCanvas_0.1.0_unsigned.ipa`
+- `InfiniteCanvas_0.1.1_macOS_app.zip`
+- `InfiniteCanvas_0.1.1_unsigned.ipa`
 
-当前 App 壳基于 0.2.5 Web 服务构造，`APP_URL` 需要指向可访问的无限画布服务。移动端真机安装前请先确认该地址在设备上可打开。
+macOS App 会内置并自动启动前端服务和 Go API，不需要手动打开本地开发服务。iPhone IPA 会打包静态前端并直接进入画布库；iOS 不支持像 macOS 一样启动 Node/Go 子进程，因此提示词库、后台代理等依赖服务端的功能仍需后续移动端纯前端化适配。
 
 ## 文档
 

@@ -5,8 +5,10 @@ description: 当前版本已实现但仍需人工验证的变更项
 
 # 待测试
 
-- App 构建新增 0.2.5 基线的 Tauri 壳：`web/app-shell` 会跳转到 `APP_URL` 指定的现有 Next.js 服务，`scripts/build-app-release.mjs` 可按 `APP_VERSION` 生成 `dist/release-assets/InfiniteCanvas_<版本>_macOS_app.zip` 或 `InfiniteCanvas_<版本>_unsigned.ipa`；需要在真实 macOS 和 iPhone 未签名安装环境验证首页、画布列表、新建画布和打开历史画布。
+- App 构建改为 0.2.5 基线的自启动包：macOS App 会随包携带 Next standalone、Go API 和 Node 运行时，打开 App 后自动启动内置本机服务并进入无限画布，不再要求用户手动打开 `localhost:3000`；iPhone IPA 会打包静态前端并直接进入画布库，打开旧画布通过 `/canvas/app?id=...` 这条静态 App 路由承载；`scripts/build-app-release.mjs` 可按 `APP_VERSION` 生成 `dist/release-assets/InfiniteCanvas_<版本>_macOS_app.zip` 或 `InfiniteCanvas_<版本>_unsigned.ipa`。iPhone 仍需在真机验证静态包内的画布列表、新建画布和打开历史画布。
 - iPhone 基础视口适配新增 `viewport-fit=cover`、safe area padding、输入框 16px 字号和画布 `touch-action: none`；移动端隐藏缩放滑条，双指缩放由画布手势处理，需要在真机验证状态栏、灵动岛、Home Indicator、键盘弹出收起和单指拖动画布都正常。
+- iPhone 画布顶部新增小地图开关，底部主工具栏改为两行换行布局，重置视图和快捷键入口上移到顶部工具区，按钮文字提示会在点击 1 秒后自动隐藏；画布视口更新回调固定为稳定引用，触控移动时会阻止 iOS 默认手势，避免双指捏合过程中重建监听或系统手势抢占导致缩放中断，需要在真机验证单指拖动、双指缩放和打开/关闭小地图后的手势恢复。
+- iPhone IPA 会写入照片图库、照片添加、相机和麦克风权限说明；图片节点下载会在 App 内优先调用 iOS 原生保存到照片，失败时再打开系统分享并只传图片文件，无法分享时回退为文件下载并给出中文提示，需要在真机验证保存到照片、保存到文件和取消分享后的提示。
 - 视频创作台创建视频任务成功后会立即写入左侧生成记录，状态显示为“生成中”；刷新页面后会读取本地任务 ID 继续轮询，任务成功或失败后更新同一条记录，需要验证 OpenAI 视频接口和 Seedance 任务接口的刷新恢复。
 - 修复画布文字节点编辑时双击进入编辑、全选文本出现重影和错位的问题；文字节点内容编辑框改为使用原生 textarea 文本渲染，仍保留 `@` 资源候选插入，需要验证编辑态选区、展示态文字换行和右上角“生图”按钮避让都正常。
 - 配置弹窗新增 WebDAV 同步配置，可填写 WebDAV 地址、远程目录、用户名和密码/应用密码，并选择“前端直连”或“Next.js 转发”；远端会按 `canvas/`、`assets/`、`image-workbench/`、`video-workbench/` 四个业务目录分别写入 `manifest.json` 清单和 `files/` 媒体目录，会合并画布项目、我的素材、生图/视频生成记录和引用到的本地媒体文件，四个业务分区会并发同步，并在同步中显示读取远端、检查媒体、上传新增媒体、上传清单等阶段和文件计数进度条；WebDAV 请求会做超时提示，目录已存在但 `MKCOL` 返回 `423 Locked` 时会复查目录存在后继续同步，需要在支持 CORS 的 NAS/WebDAV 服务和不支持 CORS 的 Koofr 转发模式下验证首次上传、第二台设备拉取合并、再次同步和认证失败提示。
